@@ -1,6 +1,8 @@
-﻿const User = require('../models/User');
+const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const TokenBlacklist = require('../models/TokenBlacklist');
+
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '7d' });
 };
@@ -29,6 +31,7 @@ const registerUser = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      avatarUrl: user.avatarUrl,
       token: generateToken(user._id, user.role),
     });
   } catch (error) {
@@ -51,6 +54,7 @@ const loginUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        avatarUrl: user.avatarUrl,
         token: generateToken(user._id, user.role),
       });
     } else {
@@ -62,4 +66,34 @@ const loginUser = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser };
+// @desc  Logout user / Invalidate token
+// @route POST /api/auth/logout
+// @access Private
+const logoutUser = async (req, res) => {
+  try {
+    const token = req.token;
+    if (!token) {
+      return res.status(400).json({ message: 'No token provided' });
+    }
+
+    // Decode token to find expiration date
+    const decoded = jwt.decode(token);
+    const expiresAt = decoded && decoded.exp 
+      ? new Date(decoded.exp * 1000) 
+      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // fallback to 7 days
+
+    // Save token to blacklist
+    await TokenBlacklist.findOneAndUpdate(
+      { token },
+      { token, expiresAt },
+      { upsert: true, new: true }
+    );
+
+    res.status(200).json({ message: 'Logged out successfully, token invalidated' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { registerUser, loginUser, logoutUser };
+

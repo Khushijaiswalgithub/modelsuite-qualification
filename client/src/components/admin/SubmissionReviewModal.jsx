@@ -1,4 +1,6 @@
-﻿import { reviewSubmission } from '../../api/submissions';
+import { useState } from 'react';
+import { reviewSubmission } from '../../api/submissions';
+import Avatar from '../Avatar';
 
 const REVIEW_STATUS_CLASS = {
   Pending:  'status-badge-Submitted',
@@ -7,14 +9,19 @@ const REVIEW_STATUS_CLASS = {
 };
 
 const SubmissionReviewModal = ({ submission, onClose, onReviewed }) => {
+  const [isReviewing, setIsReviewing] = useState(null); // 'Approved' | 'Rejected' | null
 
   const handleReview = async (status) => {
+    setIsReviewing(status);
     try {
+      await new Promise((resolve) => setTimeout(resolve, 600));
       await reviewSubmission(submission._id, status);
       onReviewed();
       onClose();
     } catch (err) {
       alert(err.response?.data?.message || 'Review action failed');
+    } finally {
+      setIsReviewing(null);
     }
   };
 
@@ -57,9 +64,7 @@ const SubmissionReviewModal = ({ submission, onClose, onReviewed }) => {
 
           {/* Talent info */}
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full avatar-talent flex items-center justify-center text-[13px] font-bold text-white shrink-0">
-              {talent.name?.[0] ?? 'T'}
-            </div>
+            <Avatar name={submission.talentId?.name} avatarUrl={submission.talentId?.avatarUrl} size="w-9 h-9" className="avatar-talent" />
             <div>
               <p className="text-[14px] font-medium text-text-primary">{talent.name || 'Unknown Talent'}</p>
               <p className="text-[12px] text-text-faint">{talent.email || '—'}</p>
@@ -101,17 +106,29 @@ const SubmissionReviewModal = ({ submission, onClose, onReviewed }) => {
 
           {/* Action buttons */}
           <div className="flex gap-3 pt-1 border-t border-border mt-1">
-            <button onClick={onClose}
-              className="flex-1 py-2.5 bg-bg-input text-text-muted border border-border rounded-lg text-sm font-medium cursor-pointer hover:bg-bg-hover hover:text-text-primary transition-all font-sans">
+            <button onClick={onClose} disabled={isReviewing !== null}
+              className={`flex-1 py-2.5 bg-bg-input text-text-muted border border-border rounded-lg text-sm font-medium cursor-pointer hover:bg-bg-hover hover:text-text-primary transition-all font-sans ${isReviewing !== null ? 'opacity-50 cursor-not-allowed' : ''}`}>
               Cancel
             </button>
-            <button onClick={() => handleReview('Rejected')}
-              className="flex-1 py-2.5 bg-danger/10 text-danger border border-danger/30 rounded-lg text-sm font-semibold cursor-pointer hover:bg-danger/20 transition-all font-sans">
-              ✕ Reject
+            <button onClick={() => handleReview('Rejected')} disabled={isReviewing !== null}
+              className={`flex-1 py-2.5 bg-danger/10 text-danger border border-danger/30 rounded-lg text-sm font-semibold cursor-pointer hover:bg-danger/20 transition-all font-sans flex items-center justify-center gap-1.5 ${isReviewing !== null ? 'opacity-50 cursor-not-allowed' : ''}`}>
+              {isReviewing === 'Rejected' && (
+                <svg className="animate-spin h-3.5 w-3.5 text-danger" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              )}
+              {isReviewing === 'Rejected' ? 'Rejecting...' : '✕ Reject'}
             </button>
-            <button onClick={() => handleReview('Approved')}
-              className="flex-1 py-2.5 bg-success/10 text-success border border-success/30 rounded-lg text-sm font-semibold cursor-pointer hover:bg-success/20 transition-all font-sans">
-              ✓ Approve
+            <button onClick={() => handleReview('Approved')} disabled={isReviewing !== null}
+              className={`flex-1 py-2.5 bg-success/10 text-success border border-success/30 rounded-lg text-sm font-semibold cursor-pointer hover:bg-success/20 transition-all font-sans flex items-center justify-center gap-1.5 ${isReviewing !== null ? 'opacity-50 cursor-not-allowed' : ''}`}>
+              {isReviewing === 'Approved' && (
+                <svg className="animate-spin h-3.5 w-3.5 text-success" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              )}
+              {isReviewing === 'Approved' ? 'Approving...' : '✓ Approve'}
             </button>
           </div>
         </div>

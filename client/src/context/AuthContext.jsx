@@ -1,4 +1,8 @@
-﻿import { createContext, useContext, useState } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useState } from 'react';
+import API from '../api/axios';
+
+
 
 const AuthContext = createContext(null);
 
@@ -14,10 +18,17 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
   };
 
-  const logout = () => {
-    localStorage.removeItem('user');
-    setUser(null);
+  const logout = async () => {
+    try {
+      await API.post('/auth/logout');
+    } catch (error) {
+      console.error('Server logout error:', error);
+    } finally {
+      localStorage.removeItem('user');
+      setUser(null);
+    }
   };
+
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>

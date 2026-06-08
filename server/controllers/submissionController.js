@@ -1,4 +1,4 @@
-﻿const Submission = require('../models/Submission');
+const Submission = require('../models/Submission');
 const Task = require('../models/Task');
 
 // @desc  Submit a task with a file upload
@@ -49,10 +49,15 @@ const submitTask = async (req, res) => {
 const getSubmission = async (req, res) => {
   try {
     const submission = await Submission.findOne({ taskId: req.params.taskId })
-      .populate('talentId', 'name email');
+      .populate('talentId', 'name email avatarUrl');
 
     if (!submission) {
       return res.status(404).json({ message: 'No submission found for this task' });
+    }
+
+    // IDOR Protection: Only allow Admins or the Talent who made the submission to access it
+    if (req.user.role !== 'Admin' && submission.talentId._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Access denied: You cannot view this submission' });
     }
 
     res.json(submission);
@@ -68,7 +73,7 @@ const getAllSubmissions = async (req, res) => {
   try {
     const submissions = await Submission.find({})
       .populate('taskId', 'title dueDate status')
-      .populate('talentId', 'name email')
+      .populate('talentId', 'name email avatarUrl')
       .sort({ createdAt: -1 });
 
     res.json(submissions);
@@ -84,20 +89,23 @@ const reviewSubmission = async (req, res) => {
   const { reviewStatus } = req.body;
 
   try {
-    // — any string is accepted and stored
     const submission = await Submission.findByIdAndUpdate(
       req.params.id,
       { reviewStatus },
       { new: true }
     )
       .populate('taskId', 'title status')
-      .populate('talentId', 'name email');
+      .populate('talentId', 'name email avatarUrl');
 
     if (!submission) {
       return res.status(404).json({ message: 'Submission not found' });
     }
-    // — task stays 'Submitted' even after the submission is Approved/Rejected
-    // Proper flow: also update Task.status to 'Approved'/'Rejected'
+
+    // Update corresponding task status
+    if (submission.taskId) {
+      await Task.findByIdAndUpdate(submission.taskId._id, { status: reviewStatus });
+      submission.taskId.status = reviewStatus; // update in-memory populated field
+    }
 
     res.json(submission);
   } catch (error) {
@@ -105,4 +113,19 @@ const reviewSubmission = async (req, res) => {
   }
 };
 
-module.exports = { submitTask, getSubmission, getAllSubmissions, reviewSubmission };
+// @desc  Get submissions for the logged-in talent
+// @route GET /api/submissions/talent/mine
+// @access Talent
+const getMySubmissions = async (req, res) => {
+  try {
+    const submissions = await Submission.find({ talentId: req.user._id })
+      .populate('taskId', 'title status dueDate')
+      .sort({ createdAt: -1 });
+
+    res.json(submissions);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { submitTask, getSubmission, getAllSubmissions, reviewSubmission, getMySubmissions };

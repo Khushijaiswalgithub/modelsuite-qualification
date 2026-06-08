@@ -15,17 +15,22 @@ const RegisterPage = () => {
   const [email, setEmail]     = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole]       = useState('Talent');
+  const [isLoading, setIsLoading] = useState(false);
   const { login }  = useAuth();
   const navigate   = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
+      await new Promise((resolve) => setTimeout(resolve, 600));
       const { data } = await API.post('/auth/register', { name, email, password, role });
       login(data);
       data.role === 'Admin' ? navigate('/admin/dashboard') : navigate('/talent/dashboard');
     } catch (err) {
       alert(err.response?.data?.message || 'Registration failed');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -45,33 +50,39 @@ const RegisterPage = () => {
           <div className="flex flex-col gap-2 group">
             <label className={labelCls} htmlFor="name">Full Name</label>
             <input id="name" type="text" placeholder="Jane Doe"
-              value={name} onChange={(e) => setName(e.target.value)} required className={inputCls} />
+              value={name} onChange={(e) => setName(e.target.value)} required disabled={isLoading} className={inputCls} />
           </div>
 
           <div className="flex flex-col gap-2 group">
             <label className={labelCls} htmlFor="reg-email">Email address</label>
             <input id="reg-email" type="email" placeholder="you@company.com"
-              value={email} onChange={(e) => setEmail(e.target.value)} required className={inputCls} />
+              value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading} className={inputCls} />
           </div>
 
           <div className="flex flex-col gap-2 group">
             <label className={labelCls} htmlFor="reg-password">Password</label>
             <input id="reg-password" type="password" placeholder="••••••••"
-              value={password} onChange={(e) => setPassword(e.target.value)} required className={inputCls} />
+              value={password} onChange={(e) => setPassword(e.target.value)} required disabled={isLoading} className={inputCls} />
           </div>
 
           <div className="flex flex-col gap-2 group">
             <label className={labelCls} htmlFor="role">Role</label>
             <select id="role" value={role} onChange={(e) => setRole(e.target.value)}
-              className={`${inputCls} custom-select cursor-pointer`}>
+              disabled={isLoading} className={`${inputCls} custom-select cursor-pointer`}>
               <option value="Talent">Talent</option>
               <option value="Admin">Admin</option>
             </select>
           </div>
 
-          <button type="submit"
-            className="mt-2 w-full py-3.5 rounded-[10px] text-[15px] font-semibold text-white cursor-pointer btn-gradient border-none hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200">
-            Setup Profile
+          <button type="submit" disabled={isLoading}
+            className={`mt-2 w-full py-3.5 rounded-[10px] text-[15px] font-semibold text-white cursor-pointer btn-gradient border-none hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200 flex items-center justify-center gap-2 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}>
+            {isLoading && (
+              <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            )}
+            {isLoading ? 'Setting Up...' : 'Setup Profile'}
           </button>
         </form>
 

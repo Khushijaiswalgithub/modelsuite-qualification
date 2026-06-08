@@ -1,4 +1,4 @@
-﻿require('dotenv').config();
+require('dotenv').config();
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
@@ -23,6 +23,7 @@ const seedData = async () => {
     email: 'admin@taskpipeline.com',
     password: await bcrypt.hash('admin123', salt),
     role: 'Admin',
+    avatarUrl: '',
   });
 
   const talent1 = await User.create({
@@ -30,6 +31,7 @@ const seedData = async () => {
     email: 'alice@taskpipeline.com',
     password: await bcrypt.hash('talent123', salt),
     role: 'Talent',
+    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
   });
 
   const talent2 = await User.create({
@@ -37,6 +39,7 @@ const seedData = async () => {
     email: 'bob@taskpipeline.com',
     password: await bcrypt.hash('talent123', salt),
     role: 'Talent',
+    avatarUrl: 'https://invalid-avatar-url.com/broken.png',
   });
 
   console.log('✅ Users seeded:', admin.email, talent1.email, talent2.email);

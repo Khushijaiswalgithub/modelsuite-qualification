@@ -26,6 +26,7 @@ const AdminDashboard = () => {
   const [editTask, setEditTask]     = useState(null);
   const [search, setSearch]         = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   const loadTasks = async () => {
     try {
@@ -36,8 +37,20 @@ const AdminDashboard = () => {
     }
   };
 
-  // eslint-disable-next-line
-  useEffect(() => { loadTasks(); }, []);
+  useEffect(() => {
+    const initData = async () => {
+      setIsLoadingData(true);
+      try {
+        await loadTasks();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+    initData();
+  }, []);
 
   const stats = {
     total:     tasks.length,
@@ -61,6 +74,21 @@ const AdminDashboard = () => {
     const matchStatus = statusFilter === 'All' || t.status === statusFilter;
     return matchSearch && matchStatus;
   });
+
+  if (isLoadingData) {
+    return (
+      <div className="flex min-h-screen" style={{ background: '#050505' }}>
+        <Sidebar />
+        <main className="ml-[240px] flex-1 flex flex-col items-center justify-center">
+          <svg className="animate-spin h-8 w-8 text-primary mb-3" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+          <p className="text-sm text-text-muted">Loading dashboard...</p>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen" style={{ background: '#050505' }}>
